@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  vmwcerts:
+    image: python:latest
+    hostname: vmwcerts
+    container_name: vmwcerts
+    command: bash -c "/usr/bin/python3 /var/vmwcerts/serve.py"
+    restart: unless-stopped
+    volumes:
+       - ./vmwcerts:/var/vmwcerts    
+    deploy:
+      labels:
+        - traefik.enable=true
+        - traefik.constraint-label=traefik-public
+        - traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto=https
+        - traefik.http.routers.vmwcerts.middlewares=sslheader
+        - traefik.http.routers.vmwcerts.rule=Host(`${HOST}`)
+        - traefik.http.services.vmwcerts.loadbalancer.server.port=8765
+        - traefik.http.routers.vmwcerts.entrypoints=https
+        - traefik.http.routers.vmwcerts.tls=true
+        - traefik.http.routers.vmwcerts.tls.certresolver=le
+    networks:
+      - traefik-public
+      
+networks:
+  traefik-public:
+    external: true
