@@ -16,8 +16,8 @@ BASE = Path(__file__).resolve().parent
 CACHE = BASE / "certs"
 CONFIG = BASE / "config.json"
 DEFAULT_SOURCES = [
-    {"url": "https://api.certmetrics.com/vmware/transcript/cb42c7284ecc42779a92605cc766e812", "name": "Marco Dalli"},
-    {"url": "https://api.certmetrics.com/vmware/transcript/S7BN84BKKBE115GQ", "name": "Alessandro Zanotti"},
+    {"url": "https://api.certmetrics.com/vmware/transcript/XXXXX", "name": "Mario Rossi"},
+    {"url": "https://api.certmetrics.com/vmware/transcript/XXXXXXX", "name": "Giovanni Bianchi"},
 ]
 
 
