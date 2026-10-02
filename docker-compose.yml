@@ -4,7 +4,7 @@ services:
   vmwcerts:
     image: python:latest
     hostname: vmwcerts
-    container_name: vmwcerts
+    #container_name: vmwcerts
     command: bash -c "/usr/bin/python3 /var/vmwcerts/serve.py"
     restart: unless-stopped
     volumes:
