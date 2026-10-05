@@ -315,7 +315,10 @@ class Handler(SimpleHTTPRequestHandler):
         if path in ("/", "/certificazioni.html"):
             self.path = "/index.html"
             return super().do_GET()
-        if path in ("/index.html", "/table.html", "/settings.html", "/login.html", "/app.js", "/style.css"):
+        if path == "/table.html":
+            self.path = "/certifications.html"
+            return super().do_GET()
+        if path in ("/index.html", "/certifications.html", "/settings.html", "/login.html", "/app.js", "/style.css"):
             return super().do_GET()
         self.send_json({"error": "Risorsa non trovata."}, 404)
 
