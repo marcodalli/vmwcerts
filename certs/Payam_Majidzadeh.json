@@ -1,0 +1,486 @@
+{
+  "ctranId": 37992,
+  "ctranRemarks": null,
+  "ctranLabel": "certs",
+  "certs": [
+    {
+      "groupingMember": "Digital Badges",
+      "ccatId": 58,
+      "name": "Double VCP-DCV & VCP-NV (VCP-DCVNV)",
+      "activeDate": "2021-01-04T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "Digital Badges",
+      "ccatId": 60,
+      "name": "Double VCP-DCV & VCP-CMA (VCP-DCVCMA)",
+      "activeDate": "2021-03-21T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "Digital Badges",
+      "ccatId": 62,
+      "name": "Double VCP-CMA & VCP-NV (VCP-CMANV)",
+      "activeDate": "2021-03-21T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "Digital Badges",
+      "ccatId": 84,
+      "name": "VMware vSphere 6.5 Foundations",
+      "activeDate": "2019-06-03T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "Digital Badges",
+      "ccatId": 185,
+      "name": "VMware Specialist - vSAN 2020 (vSAN2020 Specialist)",
+      "activeDate": "2020-12-16T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "Digital Badges",
+      "ccatId": 316,
+      "name": "VMware vRealize Operations - Cloud Management Automation 2021 (vROPS-CMA 2021)",
+      "activeDate": "2021-05-11T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "Digital Badges",
+      "ccatId": 323,
+      "name": "VMware Specialist - vRealize Operations 2021 (vROPS2021 Specialist)",
+      "activeDate": "2021-05-11T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "Digital Badges",
+      "ccatId": 327,
+      "name": "VMware Certified Specialist - vSphere with Tanzu 2021 (VVSPHT2021)",
+      "activeDate": "2021-01-15T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "Digital Badges",
+      "ccatId": 452,
+      "name": "VMware Certified Master Specialist - HCI 2022 (MSCHCI2022)",
+      "activeDate": "2022-02-04T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "VCF",
+      "ccatId": 997,
+      "name": "Broadcom Partner Certification - Proven Professional - VMware Cloud Foundation - Sales (BPC-PP-VCF SA 2024)",
+      "activeDate": "2026-03-10T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "VCF",
+      "ccatId": 998,
+      "name": "Broadcom Partner Certification - Certified Expert - VMware Cloud Foundation - Sales (BPC-CE-VCF SA 2024)",
+      "activeDate": "2026-03-10T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "VCF",
+      "ccatId": 999,
+      "name": "Broadcom Partner Certification - Proven Professional - VMware Cloud Foundation - Pre-Sales (BPC-PP-VCF PS 2024)",
+      "activeDate": "2025-02-21T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "VCF",
+      "ccatId": 1000,
+      "name": "Broadcom Partner Certification - Certified Expert - VMware Cloud Foundation - Pre-Sales (BPC-CE-VCF PS 2024)",
+      "activeDate": "2026-03-10T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "VCF",
+      "ccatId": 1001,
+      "name": "Broadcom Partner Certification - Proven Professional - VMware Cloud Foundation - Implementation (BPC-PP-VCF IMP 2024)",
+      "activeDate": "2025-02-21T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "VCF",
+      "ccatId": 1003,
+      "name": "Broadcom Partner Certification - Proven Professional - VMware Cloud Foundation - Support (BPC-PP-VCF SUP 2024)",
+      "activeDate": "2025-02-21T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "VCF",
+      "ccatId": 1005,
+      "name": "Broadcom Partner Certification - Proven Professional - VMware Cloud Foundation - Architecture (BPC-PP-VCF AR 2024)",
+      "activeDate": "2025-06-29T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "VCF",
+      "ccatId": 1006,
+      "name": "Broadcom Partner Certification - Certified Expert - VMware Cloud Foundation - Architecture (BPC-CE-VCF AR 2024)",
+      "activeDate": "2026-05-11T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "vSphere",
+      "ccatId": 1011,
+      "name": "Broadcom Partner Certification - Certified Expert - VMware vSphere - Pre-Sales (BPC-CE-VsP PS 2024)",
+      "activeDate": "2023-08-23T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "vSphere",
+      "ccatId": 1012,
+      "name": "Broadcom Partner Certification - Proven Professional - VMware vSphere - Implementation (BPC-PP-VsP IMP 2024)",
+      "activeDate": "2023-08-23T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "vSphere",
+      "ccatId": 1014,
+      "name": "Broadcom Partner Certification - Proven Professional - VMware vSphere - Support (BPC-PP-VsP SUP 2024)",
+      "activeDate": "2023-08-23T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "vSphere",
+      "ccatId": 1016,
+      "name": "Broadcom Partner Certification - Proven Professional - VMware vSphere - Architecture (BPC-PP-VsP AR 2024)",
+      "activeDate": "2023-08-23T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "vSphere",
+      "ccatId": 1017,
+      "name": "Broadcom Partner Certification - Certified Expert - VMware vSphere - Architecture (BPC-CE-VsP AR 2024)",
+      "activeDate": "2023-08-23T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "NSX",
+      "ccatId": 1030,
+      "name": "Broadcom Partner Certification - Proven Professional - VCF Networking - Pre-Sales (BPC-PP-NSX PS 2024)",
+      "activeDate": "2026-05-19T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "NSX",
+      "ccatId": 1032,
+      "name": "Broadcom Partner Certification - Proven Professional - VCF Networking - Implementation (BPC-PP-NSX IMP 2024)",
+      "activeDate": "2026-05-19T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "NSX",
+      "ccatId": 1034,
+      "name": "Broadcom Partner Certification - Proven Professional - VCF Networking - Support (BPC-PP-NSX SUP 2024)",
+      "activeDate": "2026-05-19T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "NSX",
+      "ccatId": 1036,
+      "name": "Broadcom Partner Certification - Proven Professional - VCF Networking - Architecture (BPC-PP-NSX AR 2024)",
+      "activeDate": "2026-05-19T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "NSX",
+      "ccatId": 1037,
+      "name": "Broadcom Partner Certification - Certified Expert - VCF Networking - Architecture (BPC-CE-NSX  AR 2024)",
+      "activeDate": "2023-09-22T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "VCF",
+      "ccatId": 1274,
+      "name": "VMware Certified Professional - VMware Cloud Foundation Administrator (VCP-VCF Admin)",
+      "activeDate": "2025-12-06T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "VCF",
+      "ccatId": 1279,
+      "name": "VMware Certified Professional - VMware Cloud Foundation Architect (VCP-VCF Arch)",
+      "activeDate": "2025-06-29T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "groupingMember": "VCF",
+      "ccatId": 1325,
+      "name": "VMware Certified Advanced Professional - VMware Cloud Foundation Networking (VCAP VCF 9.0 Networking)",
+      "activeDate": "2026-05-19T00:00:00",
+      "inactiveDate": null,
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    }
+  ],
+  "exams": [
+    {
+      "id": 564606,
+      "excatId": 86,
+      "name": "[2V0-602PSE] vSphere 6.5 Foundations Exam",
+      "examDateTime": "2019-06-03T16:32:09",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 602769,
+      "excatId": 76,
+      "name": "[1V0-701] VMware Certified Associate - Digital Business Transformation",
+      "examDateTime": "2020-02-27T23:07:07",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 618997,
+      "excatId": 90,
+      "name": "[2V0-21.19PSE] Professional VMware vSphere 6.7",
+      "examDateTime": "2020-07-25T13:01:43",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 637990,
+      "excatId": 99,
+      "name": "[5V0-21.19] VMware vSAN 6.7 Specialist Exam 2019",
+      "examDateTime": "2020-12-16T20:25:38",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 641219,
+      "excatId": 117,
+      "name": "[2V0-41.20] Professional VMware NSX-T Data Center",
+      "examDateTime": "2021-01-04T20:53:05",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 642443,
+      "excatId": 137,
+      "name": "[5V0-23.20] VMware vSphere with Tanzu Specialist",
+      "examDateTime": "2021-01-15T20:43:52",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 649511,
+      "excatId": 119,
+      "name": "[2V0-31.20] Professional VMware vRealize Automation 8.1",
+      "examDateTime": "2021-03-21T20:52:20",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 654728,
+      "excatId": 100,
+      "name": "[5V0-34.19] VMware vRealize Operations 7.5",
+      "examDateTime": "2021-05-11T19:18:59",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 681465,
+      "excatId": 170,
+      "name": "[5V0-21.21] VMware HCI Master Specialist",
+      "examDateTime": "2022-02-04T19:16:06",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 735576,
+      "excatId": 155,
+      "name": "[3V0-21.21] Advanced Design VMware vSphere 7.x",
+      "examDateTime": "2023-07-28T13:14:26",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 737915,
+      "excatId": 205,
+      "name": "[2V0-21.23] VMware Certified Professional - Data Center Virtualization",
+      "examDateTime": "2023-08-23T18:10:11",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 740585,
+      "excatId": 118,
+      "name": "[3V0-42.20] Advanced Design VMware NSX-T Data Center",
+      "examDateTime": "2023-09-22T13:00:59",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 775227,
+      "excatId": 272,
+      "name": "[2V0-11.24] VMware Cloud Foundation 5.2 Administrator",
+      "examDateTime": "2024-12-12T13:15:11",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 786571,
+      "excatId": 276,
+      "name": "[2V0-13.24] VMware Cloud Foundation 5.2 Architect",
+      "examDateTime": "2025-06-29T14:15:45",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 796475,
+      "excatId": 294,
+      "name": "[2V0-17.25] VMware Cloud Foundation 9.0 Administrator",
+      "examDateTime": "2025-12-06T20:02:38",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 803568,
+      "excatId": 293,
+      "name": "[2V0-13.25] VMware Cloud Foundation 9.0 Architect",
+      "examDateTime": "2026-03-10T00:02:10",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    },
+    {
+      "id": 809460,
+      "excatId": 306,
+      "name": "[3V0-25.25] Advanced VMware Cloud Foundation 9.0 Networking",
+      "examDateTime": "2026-05-19T20:57:22",
+      "imageUrl": null,
+      "badgingEnabled": false,
+      "badgeUrl": null
+    }
+  ],
+  "certRequirements": [],
+  "standings": [],
+  "candidate": {
+    "externalId": "BDCM01382962",
+    "name": "Payam Majidzadeh",
+    "addressLine1": "Via Traversera, 1",
+    "addressLine2": null,
+    "addressLine3": null,
+    "addressCity": "Castellanza",
+    "addressState": null,
+    "addressPostalCode": "21053",
+    "addressCountry": {
+      "icId": 82,
+      "icCreated": "2007-10-24T18:09:26.307",
+      "icName": "Germany",
+      "icCode": "DEU",
+      "icNumber": 276,
+      "icPhoneCcPrefix": "49",
+      "icPhoneIddPrefix": "00",
+      "icCode2": "DE",
+      "icNoSubdivision": null
+    }
+  },
+  "badgingEnabled": false
+}
