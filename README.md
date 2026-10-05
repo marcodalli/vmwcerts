@@ -1,0 +1,1 @@
+This webapp retrieves certifications for different candidates from CertMetrics portal using native APIs and builds a graphical representation of current status of certifications within the organization.
