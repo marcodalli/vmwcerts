@@ -28,10 +28,7 @@ SESSION_TTL = 8 * 60 * 60
 ALLOWED_TYPES = {"Sales", "Technical"}
 ALLOWED_SPECS = {"Pre-Sales", "Implementation", "Support", "Architecture"}
 ALLOWED_LEVELS = {"Proven Professional", "Certified Expert"}
-DEFAULT_SOURCES = [
-    {"url": "https://api.certmetrics.com/vmware/transcript/cb42c7284ecc42779a92605cc766e812", "name": "Marco Dalli"},
-    {"url": "https://api.certmetrics.com/vmware/transcript/S7BN84BKKBE115GQ", "name": "Alessandro Zanotti"},
-]
+DEFAULT_SOURCES = []
 
 
 def read_config():
@@ -324,7 +321,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = urlsplit(self.path).path
-        if path not in ("/api/login", "/api/logout", "/api/password", "/api/config", "/api/classifications"):
+        if path not in ("/api/login", "/api/password", "/api/config", "/api/classifications"):
             self.send_json({"error": "Endpoint non trovato."}, 404)
             return
         try:
@@ -339,11 +336,6 @@ class Handler(SimpleHTTPRequestHandler):
                 SESSIONS[token] = time.time() + SESSION_TTL
                 secure = "; Secure" if self.headers.get("X-Forwarded-Proto", "").lower() == "https" else ""
                 self.send_json({"authenticated": True}, headers={"Set-Cookie": f"cert_session={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age={SESSION_TTL}{secure}"})
-                return
-            if path == "/api/logout":
-                token = self.session_token()
-                SESSIONS.pop(token, None)
-                self.send_json({"authenticated": False}, headers={"Set-Cookie": "cert_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0"})
                 return
             if path == "/api/password":
                 if not self.require_auth():

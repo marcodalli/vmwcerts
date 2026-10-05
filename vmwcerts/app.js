@@ -1,7 +1,6 @@
 const $=s=>document.querySelector(s);
 const escDate=value=>{if(!value)return null;const d=new Date(value);return Number.isNaN(d.getTime())?null:d};
 const dateLabel=value=>{const d=escDate(value);return d?new Intl.DateTimeFormat("it-IT",{day:"2-digit",month:"2-digit",year:"numeric",timeZone:"UTC"}).format(d):""};
-const nameOf=(obj,keys)=>{if(!obj||typeof obj!=="object")return"";const key=Object.keys(obj).find(k=>keys.includes(k.toLowerCase()));return key?obj[key]:""};
 const cell=(tag,text,cls)=>{const el=document.createElement(tag);if(cls)el.className=cls;el.textContent=text;return el};
 
 async function loadTranscripts(){
@@ -12,7 +11,7 @@ async function loadTranscripts(){
     const data=file.data||{},candidate=data.candidate||{};
     const candidateName=candidate.name||file.name||"Candidato";
     const certs=Array.isArray(data.certs)?data.certs:[];
-    candidates.push({name:candidateName,source:file.name,certs:certs.map(c=>({id:String(c.ccatId??c.id??""),name:c.name||c.certificationName||"Certificazione senza nome",date:c.activeDate||c.activationDate||c.dateEarned||"",dateObj:escDate(c.activeDate||c.activationDate||c.dateEarned)}))});
+    candidates.push({name:candidateName,certs:certs.map(c=>({id:String(c.ccatId??c.id??""),name:c.name||c.certificationName||"Certificazione senza nome",date:c.activeDate||c.activationDate||c.dateEarned||"",dateObj:escDate(c.activeDate||c.activationDate||c.dateEarned)}))});
   }
   return{candidates,errors,saved:payload.saved||0};
 }
@@ -33,14 +32,14 @@ function renderDashboard(candidates,classifications){
   const note=$("#classification-note");note.textContent=`${visible.length} classificazioni abilitate al Focus Product · ${excluded} certificazioni escluse dal riepilogo.`;renderKnights(candidates);
 }
 
-function studentIcon(hasCap){const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox","0 0 24 24");svg.setAttribute("aria-hidden","true");svg.classList.add("student-icon");const add=(tag,attrs)=>{const shape=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))shape.setAttribute(key,value);svg.append(shape)};add("circle",{cx:"12",cy:hasCap?"9":"8",r:"3",class:"student-head"});add("path",{d:"M5 21c0-4.1 3.1-7 7-7s7 2.9 7 7",class:"student-body"});if(hasCap){add("path",{d:"M3 5.5 12 2l9 3.5-9 3.7-9-3.7Z",class:"student-cap"});add("path",{d:"M20.5 6v5",class:"student-tassel"});add("circle",{cx:"20.5",cy:"11.7",r:".8",class:"student-tassel"})}return svg}
+function studentIcon(hasCap){const ns="http://www.w3.org/2000/svg",svg=document.createElementNS(ns,"svg");svg.setAttribute("viewBox","0 0 24 24");svg.setAttribute("aria-hidden","true");svg.classList.add("student-icon");const add=(tag,attrs)=>{const shape=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))shape.setAttribute(key,value);svg.append(shape)};add("circle",{cx:"12",cy:hasCap?"9":"8",r:"3"});add("path",{d:"M5 21c0-4.1 3.1-7 7-7s7 2.9 7 7"});if(hasCap){add("path",{d:"M3 5.5 12 2l9 3.5-9 3.7-9-3.7Z",class:"student-cap"});add("path",{d:"M20.5 6v5",class:"student-tassel"});add("circle",{cx:"20.5",cy:"11.7",r:".8",class:"student-tassel"})}return svg}
 function legendItem(kind,code,title){const item=document.createElement("span");item.className=`legend-item ${kind}-level`;item.append(studentIcon(kind==="expert"),cell("strong",code),cell("span",title));return item}
 function levelMetric(code,entries,kind){const row=document.createElement("div");row.className=`level-count ${kind}-level`;if(!entries.length)row.classList.add("zero-candidates");const label=document.createElement("span");label.className="level-label";label.append(studentIcon(kind==="expert"),cell("span",code));row.append(label,cell("strong",String(entries.length)));return row}
 function renderKnights(candidates){const holder=$("#knight-table");if(!holder)return;const groups=new Map();for(const person of candidates)for(const cert of person.certs){if(!/broadcom\s+knight/i.test(cert.name))continue;const match=cert.name.match(/Broadcom\s+Knight(.*)$/i);const product=(match?match[1]:cert.name).replace(/^\s*[-:–—]+\s*/,"").trim()||cert.name;if(!groups.has(product))groups.set(product,new Set());groups.get(product).add(person.name)}if(!groups.size){holder.innerHTML='<div class="empty-state">Nessuna certificazione Knight trovata.</div>';return}const wrap=document.createElement("div");wrap.className="table-wrap";const table=document.createElement("table");table.className="knight-table";const thead=document.createElement("thead"),hr=document.createElement("tr");hr.append(cell("th","Prodotto"),cell("th","Knight"));thead.append(hr);table.append(thead);const tbody=document.createElement("tbody");for(const [product,names]of [...groups].sort((a,b)=>a[0].localeCompare(b[0],"it"))){const tr=document.createElement("tr");tr.append(cell("td",product));const td=document.createElement("td"),count=cell("span",String(names.size),"knight-count");count.title=[...names].join("\n");td.append(count);tr.append(td);tbody.append(tr)}table.append(tbody);wrap.append(table);holder.replaceChildren(wrap)}
 
 function renderCertTable(candidates,showOld,query){
   const holder=$("#cert-table"),candidateNames=[...new Set(candidates.map(c=>c.name))];const map=new Map();const cutoff=new Date();cutoff.setFullYear(cutoff.getFullYear()-2);
-  for(const person of candidates)for(const cert of person.certs){if(!map.has(cert.id||cert.name))map.set(cert.id||cert.name,{name:cert.name,dates:new Map(),latest:null});const entry=map.get(cert.id||cert.name);entry.dates.set(person.name,cert);if(cert.dateObj&&(!entry.latest||cert.dateObj>entry.latest))entry.latest=cert.dateObj}
+  for(const person of candidates)for(const cert of person.certs){if(!map.has(cert.id||cert.name))map.set(cert.id||cert.name,{name:cert.name,dates:new Map()});const entry=map.get(cert.id||cert.name);entry.dates.set(person.name,cert)}
   let records=[...map.values()].filter(cert=>cert.name.toLocaleLowerCase("it").includes(query.toLocaleLowerCase("it"))&&(showOld||[...cert.dates.values()].some(x=>!x.dateObj||x.dateObj>=cutoff))).sort((a,b)=>a.name.localeCompare(b.name,"it"));
   if(!records.length){holder.innerHTML='<div class="empty-state">Nessuna certificazione corrisponde ai filtri.</div>';return}
   const wrap=document.createElement("div");wrap.className="table-wrap";const table=document.createElement("table");table.className="matrix";const thead=document.createElement("thead"),hr=document.createElement("tr");hr.append(cell("th","Certificazione"));for(const name of candidateNames)hr.append(cell("th",name));thead.append(hr);table.append(thead);const tbody=document.createElement("tbody");
@@ -60,7 +59,8 @@ function addClassificationRow(item){
   $("#classification-rows").append(tr);
 }
 function booleanCell(value,labelText){const td=document.createElement("td"),label=document.createElement("label"),input=document.createElement("input"),text=document.createElement("span");label.className="boolean-button";input.type="checkbox";input.checked=Boolean(value);input.setAttribute("aria-label",labelText);text.textContent=input.checked?"Attivo":"No";input.addEventListener("change",()=>{text.textContent=input.checked?"Attivo":"No"});label.append(input,text);td.append(label);return td}
-function renderClassifications(items){const rows=$("#classification-rows");rows.replaceChildren();for(const item of items)addClassificationRow(item)}
+function filterClassifications(){const query=$("#classification-search").value.trim().toLocaleLowerCase("it");for(const row of $("#classification-rows").rows)row.hidden=!row.cells[0].textContent.toLocaleLowerCase("it").includes(query)}
+function renderClassifications(items){const rows=$("#classification-rows");rows.replaceChildren();for(const item of items)addClassificationRow(item);filterClassifications()}
 function classificationDraft(){return[...$("#classification-rows").rows].map(row=>{const item={...row._classification};item.focusProduct=row.cells[1].querySelector('input[type="checkbox"]').checked;item.vcap=row.cells[2].querySelector('input[type="checkbox"]').checked;for(const [index,field]of["type","specification","level"].entries())item[field]=row.cells[index+3].querySelector("select").value;return item})}
 async function loadClassificationSettings(){const response=await fetch("/api/classifications",{cache:"no-store"}),data=await response.json();if(!response.ok)throw Error(data.error||`HTTP ${response.status}`);renderClassifications(data.certifications||[]);const added=(data.certifications||[]).filter(x=>x.isNew).length;$("#classification-status").textContent=`${(data.certifications||[]).length} certificazioni · ${added} da classificare`}
 async function refreshAndLoadClassifications(){const response=await fetch("/api/refresh",{cache:"no-store"}),data=await response.json();if(!response.ok)throw Error(data.error||`HTTP ${response.status}`);showErrors((data.files||[]).filter(x=>x.error));await loadClassificationSettings()}
@@ -73,7 +73,7 @@ async function changePassword(event){event.preventDefault();const form=event.cur
 async function init(){
   const page=document.body.dataset.page;
   if(page==="settings"){
-    $("#add-source").addEventListener("click",()=>addSourceRow());$("#save-config").addEventListener("click",saveSettings);$("#save-classifications").addEventListener("click",saveClassifications);$("#password-form").addEventListener("submit",changePassword);
+    $("#add-source").addEventListener("click",()=>addSourceRow());$("#save-config").addEventListener("click",saveSettings);$("#save-classifications").addEventListener("click",saveClassifications);$("#password-form").addEventListener("submit",changePassword);$("#classification-search").addEventListener("input",filterClassifications);
     try{await initSettings()}catch(e){$("#config-status").textContent=`Errore configurazione: ${e.message}`}return;
   }
   let data;
