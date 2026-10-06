@@ -298,6 +298,12 @@ class Handler(SimpleHTTPRequestHandler):
             except (OSError, json.JSONDecodeError) as exc:
                 self.send_json({"error": str(exc)}, 500)
             return
+        if path == "/api/partnership-requirements":
+            try:
+                self.send_json(json.loads((BASE / "partnership_requirements.json").read_text(encoding="utf-8")))
+            except (OSError, json.JSONDecodeError) as exc:
+                self.send_json({"error": str(exc)}, 500)
+            return
         if path == "/api/refresh":
             try:
                 self.send_json(refresh_and_sync())

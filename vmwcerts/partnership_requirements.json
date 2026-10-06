@@ -1,0 +1,67 @@
+{
+  "partnership_levels": {
+    "Pinnacle": {
+      "certifications": {
+        "Sales": {
+          "Proven Professional": 6,
+          "Certified Expert": 3
+        },
+        "Pre-Sales": {
+          "Proven Professional": 3,
+          "Certified Expert": 3
+        },
+        "Implementation": {
+          "Proven Professional": 2,
+          "Certified Expert": 2
+        },
+        "Architect": {
+          "Proven Professional": 1,
+          "Certified Expert": 1
+        }
+      },
+      "vcf_knights": 2
+    },
+    "Premier": {
+      "certifications": {
+        "Sales": {
+          "Proven Professional": 4,
+          "Certified Expert": 2
+        },
+        "Pre-Sales": {
+          "Proven Professional": 2,
+          "Certified Expert": 2
+        },
+        "Implementation": {
+          "Proven Professional": 2,
+          "Certified Expert": 1
+        },
+        "Architect": {
+          "Proven Professional": 1,
+          "Certified Expert": 1
+        }
+      },
+      "vcf_knights": 1
+    },
+    "Select": {
+      "certifications": {
+        "Sales": {
+          "Proven Professional": 2,
+          "Certified Expert": 2
+        },
+        "Pre-Sales": {
+          "Proven Professional": 1,
+          "Certified Expert": 1
+        },
+        "Implementation": {
+          "Proven Professional": 0,
+          "Certified Expert": 0
+        },
+        "Architect": {
+          "Proven Professional": 0,
+          "Certified Expert": 0
+        }
+      },
+      "vcf_knights": 0
+    }
+  }
+}
