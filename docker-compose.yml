@@ -12,9 +12,6 @@ services:
        - type: bind
          source: "${PATH}/certs"
          target: "/var/vmwcerts/certs"
-       - type: bind
-         source: "${PATH}/candidates.json"
-         target: "/var/vmwcerts/candidates.json" 
     deploy:
       labels:
         - traefik.enable=true
