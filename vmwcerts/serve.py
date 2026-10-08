@@ -19,7 +19,9 @@ import time
 
 BASE = Path(__file__).resolve().parent
 CACHE = BASE / "certs"
-CONFIG = BASE / "candidates.json"
+TRANSCRIPTS_CACHE = CACHE / "transcripts"
+CONFIG = CACHE / "candidates.json"
+LEGACY_CONFIG = Path("/tmp/vmwcerts-legacy-candidates.json")
 CLASSIFICATIONS = BASE / "classifications.json"
 PASSWORD_FILE = BASE / "password.txt"
 PASSWORD_ITERATIONS = 310_000
@@ -33,7 +35,13 @@ DEFAULT_SOURCES = []
 
 def read_config():
     if not CONFIG.exists():
-        write_config(DEFAULT_SOURCES)
+        # Migrate the formerly bind-mounted file on first startup after upgrade.
+        legacy = LEGACY_CONFIG if LEGACY_CONFIG.exists() else BASE / "candidates.json"
+        if legacy.exists():
+            old_data = json.loads(legacy.read_text(encoding="utf-8"))
+            write_config(old_data.get("sources", DEFAULT_SOURCES))
+        else:
+            write_config(DEFAULT_SOURCES)
     return json.loads(CONFIG.read_text(encoding="utf-8"))
 
 
@@ -94,8 +102,8 @@ def download_source(url):
     if not isinstance(data, dict):
         raise ValueError("Il file remoto non contiene un oggetto JSON valido.")
     name = extract_candidate_name(data)
-    CACHE.mkdir(exist_ok=True)
-    (CACHE / safe_filename(name)).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    TRANSCRIPTS_CACHE.mkdir(parents=True, exist_ok=True)
+    (TRANSCRIPTS_CACHE / safe_filename(name)).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     return {"url": url, "name": name}
 
 
@@ -225,7 +233,7 @@ def sync_classifications(downloaded):
 
 def refresh_and_sync():
     sources = read_config().get("sources", [])
-    CACHE.mkdir(exist_ok=True)
+    TRANSCRIPTS_CACHE.mkdir(parents=True, exist_ok=True)
     files, saved = [], 0
     for source in sources:
         url, name = source["url"], source["name"]
@@ -234,7 +242,7 @@ def refresh_and_sync():
             with urlopen(request, timeout=30) as response:
                 raw = response.read()
             data = json.loads(raw.decode("utf-8-sig"))
-            cache_file = CACHE / safe_filename(name)
+            cache_file = TRANSCRIPTS_CACHE / safe_filename(name)
             cache_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
             cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
             files.append({"url": url, "name": name, "file": cache_file.name, "data": cached_data})
