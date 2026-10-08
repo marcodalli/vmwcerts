@@ -10,8 +10,8 @@ services:
     volumes:
        - ./vmwcerts:/var/vmwcerts
        - type: bind
-         source: "${PATH}"
-         target: "/var/vmwcerts"
+         source: "${PATH}/certs"
+         target: "/var/vmwcerts/certs"
     deploy:
       labels:
         - traefik.enable=true
