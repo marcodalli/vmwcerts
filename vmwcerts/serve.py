@@ -25,7 +25,8 @@ TRANSCRIPTS_CACHE = CACHE / "transcripts"
 CONFIG = CACHE / "candidates.json"
 REFRESH_STATE = CACHE / "last_refresh.json"
 LEGACY_CONFIG = Path("/tmp/vmwcerts-legacy-candidates.json")
-CLASSIFICATIONS = BASE / "classifications.json"
+CLASSIFICATIONS = CACHE / "classifications.json"
+LEGACY_CLASSIFICATIONS = BASE / "classifications.json"
 PASSWORD_FILE = BASE / "password.txt"
 PASSWORD_ITERATIONS = 310_000
 SESSIONS = {}
@@ -381,24 +382,60 @@ def normalize_classification(entry):
 
 
 def read_classifications():
+    if not CLASSIFICATIONS.exists() and LEGACY_CLASSIFICATIONS.exists():
+        CLASSIFICATIONS.parent.mkdir(parents=True, exist_ok=True)
+        LEGACY_CLASSIFICATIONS.replace(CLASSIFICATIONS)
     try:
         data = json.loads(CLASSIFICATIONS.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"{CLASSIFICATIONS.name} contains invalid or empty JSON: {exc}") from exc
     items = data.get("certifications", [])
-    return [normalize_classification(x) for x in items]
+    items = [normalize_classification(x) for x in items]
+    migrate_transcript_images(items)
+    return items
 
 
 def write_classifications(items):
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=BASE, delete=False) as tmp:
+    CLASSIFICATIONS.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=CLASSIFICATIONS.parent, delete=False) as tmp:
         json.dump({"certifications": items}, tmp, ensure_ascii=False, indent=2)
         tmp.write("\n")
         temp_path = Path(tmp.name)
     temp_path.replace(CLASSIFICATIONS)
 
 
+def migrate_transcript_images(items):
+    """Move any previously cached badge art from candidate JSON into shared classifications."""
+    by_name = {item.get("name", ""): item for item in items}
+    changed_classes = False
+    for cache_file in TRANSCRIPTS_CACHE.glob("*.json"):
+        try:
+            payload = json.loads(cache_file.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            continue
+        changed_candidate = False
+        data = payload.get("data") if isinstance(payload, dict) else None
+        for cert in data.get("certs", []) if isinstance(data, dict) else []:
+            if not isinstance(cert, dict):
+                continue
+            name = str(cert.get("name") or cert.get("certificationName") or "").strip()
+            image_url = cert.pop("imageUrl", "") or cert.pop("credlyImageUrl", "")
+            if image_url:
+                changed_candidate = True
+                if name in by_name and by_name[name].get("imageUrl") != image_url:
+                    by_name[name]["imageUrl"] = image_url
+                    changed_classes = True
+        if changed_candidate:
+            cache_file.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    if changed_classes:
+        write_classifications(items)
+
+
 def sync_classifications(downloaded):
     """Append unseen credential names, leaving every existing classification intact."""
+    if not CLASSIFICATIONS.exists() and LEGACY_CLASSIFICATIONS.exists():
+        CLASSIFICATIONS.parent.mkdir(parents=True, exist_ok=True)
+        LEGACY_CLASSIFICATIONS.replace(CLASSIFICATIONS)
     try:
         original = json.loads(CLASSIFICATIONS.read_text(encoding="utf-8")).get("certifications", [])
         items = [normalize_classification(x) for x in original]
@@ -406,6 +443,16 @@ def sync_classifications(downloaded):
         original = []
         items = []
     by_name = {x.get("name", ""): x for x in items}
+    images_by_name = {}
+    for transcript in downloaded:
+        images_by_name.update(transcript.get("_certImages", {}))
+        for cert in (transcript.get("data") or {}).get("certs", []):
+            if not isinstance(cert, dict):
+                continue
+            name = str(cert.get("name") or cert.get("certificationName") or "").strip()
+            image_url = cert.get("imageUrl")
+            if name and image_url:
+                images_by_name[name] = image_url
     added = []
     for transcript in downloaded:
         data = transcript.get("data") or {}
@@ -420,6 +467,9 @@ def sync_classifications(downloaded):
             items.append(item)
             by_name[name] = item
             added.append(name)
+    for name, image_url in images_by_name.items():
+        if name in by_name and by_name[name].get("imageUrl") != image_url:
+            by_name[name]["imageUrl"] = image_url
     if added or original != items or not CLASSIFICATIONS.exists():
         write_classifications(items)
     return items, added
@@ -457,10 +507,18 @@ def refresh_and_sync():
                             merge_credly_expirations(data, json.loads(cached_credly.read_text(encoding="utf-8")))
                         except (OSError, UnicodeError, json.JSONDecodeError):
                             pass
+            # Badge art is shared certification metadata, not candidate transcript data.
+            cert_images = {}
+            for cert in data.get("certs", []):
+                if isinstance(cert, dict) and cert.get("imageUrl"):
+                    cert_images[str(cert.get("name") or cert.get("certificationName") or "").strip()] = cert["imageUrl"]
+                if isinstance(cert, dict):
+                    cert.pop("imageUrl", None)
             cache_file = TRANSCRIPTS_CACHE / safe_filename(name)
             cache_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
             cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
             item = {"url": url, "credlyUrl": credly_url, "name": name, "file": cache_file.name, "data": cached_data}
+            item["_certImages"] = cert_images
             if credly_error:
                 item["credlyError"] = credly_error
             files.append(item)
@@ -471,6 +529,8 @@ def refresh_and_sync():
             updated_sources.append(source)
     write_config(updated_sources)
     _, added = sync_classifications(files)
+    for item in files:
+        item.pop("_certImages", None)
     refreshed_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     REFRESH_STATE.write_text(json.dumps({"refreshedAt": refreshed_at}, ensure_ascii=False), encoding="utf-8")
     return {"files": files, "saved": saved, "newNames": added, "refreshedAt": refreshed_at}
