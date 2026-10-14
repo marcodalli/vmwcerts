@@ -382,9 +382,7 @@ def normalize_classification(entry):
 
 
 def read_classifications():
-    if not CLASSIFICATIONS.exists() and LEGACY_CLASSIFICATIONS.exists():
-        CLASSIFICATIONS.parent.mkdir(parents=True, exist_ok=True)
-        LEGACY_CLASSIFICATIONS.replace(CLASSIFICATIONS)
+    migrate_legacy_classifications()
     try:
         data = json.loads(CLASSIFICATIONS.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
@@ -402,6 +400,21 @@ def write_classifications(items):
         tmp.write("\n")
         temp_path = Path(tmp.name)
     temp_path.replace(CLASSIFICATIONS)
+
+
+def migrate_legacy_classifications():
+    """Copy the old config into the certs volume, which may be a different filesystem."""
+    if CLASSIFICATIONS.exists() or not LEGACY_CLASSIFICATIONS.exists():
+        return
+    CLASSIFICATIONS.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("wb", dir=CLASSIFICATIONS.parent, delete=False) as tmp:
+        tmp.write(LEGACY_CLASSIFICATIONS.read_bytes())
+        temp_path = Path(tmp.name)
+    temp_path.replace(CLASSIFICATIONS)
+    try:
+        LEGACY_CLASSIFICATIONS.unlink()
+    except FileNotFoundError:
+        pass
 
 
 def migrate_transcript_images(items):
@@ -433,9 +446,7 @@ def migrate_transcript_images(items):
 
 def sync_classifications(downloaded):
     """Append unseen credential names, leaving every existing classification intact."""
-    if not CLASSIFICATIONS.exists() and LEGACY_CLASSIFICATIONS.exists():
-        CLASSIFICATIONS.parent.mkdir(parents=True, exist_ok=True)
-        LEGACY_CLASSIFICATIONS.replace(CLASSIFICATIONS)
+    migrate_legacy_classifications()
     try:
         original = json.loads(CLASSIFICATIONS.read_text(encoding="utf-8")).get("certifications", [])
         items = [normalize_classification(x) for x in original]
