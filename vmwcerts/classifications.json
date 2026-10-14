@@ -749,6 +749,17 @@
       "specification": "Architecture",
       "level": "Certified Expert",
       "vcap": false
+    },
+    {
+      "ccatId": 1340,
+      "name": "VMware Certified Advanced Professional - VMware Cloud Foundation Administrator (VCAP Admin)",
+      "product": "VMware Cloud Foundation",
+      "focusProduct": false,
+      "vcap": true,
+      "type": "",
+      "specification": "",
+      "level": "",
+      "isNew": true
     }
   ]
 }

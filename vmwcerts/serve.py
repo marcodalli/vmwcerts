@@ -5,7 +5,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 from http.cookies import CookieError, SimpleCookie
 import argparse
 import hashlib
@@ -15,12 +15,15 @@ import re
 import secrets
 import tempfile
 import time
+import unicodedata
+from datetime import datetime, timezone
 
 
 BASE = Path(__file__).resolve().parent
 CACHE = BASE / "certs"
 TRANSCRIPTS_CACHE = CACHE / "transcripts"
 CONFIG = CACHE / "candidates.json"
+REFRESH_STATE = CACHE / "last_refresh.json"
 LEGACY_CONFIG = Path("/tmp/vmwcerts-legacy-candidates.json")
 CLASSIFICATIONS = BASE / "classifications.json"
 PASSWORD_FILE = BASE / "password.txt"
@@ -42,7 +45,10 @@ def read_config():
             write_config(old_data.get("sources", DEFAULT_SOURCES))
         else:
             write_config(DEFAULT_SOURCES)
-    return json.loads(CONFIG.read_text(encoding="utf-8"))
+    try:
+        return json.loads(CONFIG.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{CONFIG.name} contains invalid or empty JSON: {exc}") from exc
 
 
 def write_config(sources):
@@ -95,16 +101,201 @@ def extract_candidate_name(data):
     raise ValueError("Il JSON scaricato non contiene il nome del candidato.")
 
 
-def download_source(url):
-    request = Request(url, headers={"Accept": "application/json", "User-Agent": "CertificazioniDashboard/1.0"})
+def fetch_json(url, accept="application/json, text/plain, */*"):
+    headers = {
+        "Accept": accept,
+        "Accept-Language": "en-US,en;q=0.9",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    }
+    if urlsplit(url).hostname in {"credly.com", "www.credly.com"}:
+        headers["Origin"] = "https://www.credly.com"
+        headers["Referer"] = "https://www.credly.com/"
+    request = Request(url, headers=headers)
     with urlopen(request, timeout=30) as response:
-        data = json.loads(response.read().decode("utf-8-sig"))
-    if not isinstance(data, dict):
-        raise ValueError("Il file remoto non contiene un oggetto JSON valido.")
-    name = extract_candidate_name(data)
-    TRANSCRIPTS_CACHE.mkdir(parents=True, exist_ok=True)
-    (TRANSCRIPTS_CACHE / safe_filename(name)).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    return {"url": url, "name": name}
+        raw = response.read()
+    try:
+        return json.loads(raw.decode("utf-8-sig"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        preview = raw[:120].decode("utf-8", errors="replace").replace("\n", " ").strip()
+        raise ValueError(f"La risposta da {url} non è JSON valido: {exc}. Risposta iniziale: {preview!r}") from exc
+
+
+def credly_cache_path(url):
+    digest = hashlib.sha256(url.encode("utf-8")).hexdigest()
+    return TRANSCRIPTS_CACHE / f"credly_{digest}.json"
+
+
+def fetch_credly_badges(url):
+    """Fetch every Credly badge page by following its metadata pagination."""
+    badges = []
+    page_url = url
+    seen = set()
+    total_pages = None
+    while page_url and page_url not in seen:
+        seen.add(page_url)
+        payload = fetch_json(page_url)
+        if not isinstance(payload, dict):
+            raise ValueError("Credly returned an invalid JSON response.")
+        badges.extend(credly_badge_items(payload))
+        metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+        try:
+            total_pages = int(metadata.get("total_pages", total_pages or 1))
+        except (TypeError, ValueError):
+            total_pages = total_pages or 1
+        next_url = metadata.get("next_url") or metadata.get("next_page_url") or metadata.get("next_page") or metadata.get("next")
+        if isinstance(next_url, dict):
+            next_url = next_url.get("url") or next_url.get("href")
+        if isinstance(next_url, str) and next_url:
+            candidate_url = urljoin(page_url, next_url)
+            parsed_next = urlsplit(candidate_url)
+            if parsed_next.scheme != "https" or parsed_next.hostname not in {"credly.com", "www.credly.com"}:
+                raise ValueError("Credly returned an invalid next-page URL.")
+            page_url = candidate_url
+        elif len(seen) < total_pages:
+            parts = urlsplit(page_url)
+            query = parse_qs(parts.query)
+            try:
+                page = int((query.get("page") or ["1"])[0])
+            except ValueError:
+                page = len(seen)
+            query["page"] = [str(page + 1)]
+            query.setdefault("page_size", ["48"])
+            page_url = parts._replace(query=urlencode(query, doseq=True)).geturl()
+        else:
+            page_url = ""
+    return {"data": badges, "metadata": {"total_pages": total_pages or 1}}
+
+
+def normalize_credential_name(value):
+    normalized = unicodedata.normalize("NFKD", str(value or "")).casefold()
+    normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+    return " ".join(re.findall(r"[a-z0-9]+", normalized))
+
+
+def credly_badge_items(payload):
+    if isinstance(payload, list):
+        return payload
+    if not isinstance(payload, dict):
+        return []
+    for key in ("data", "badges", "results", "items"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            return value
+        if isinstance(value, dict):
+            for nested_key in ("badges", "results", "items"):
+                if isinstance(value.get(nested_key), list):
+                    return value[nested_key]
+            if any(key in value for key in ("badge_template", "badge", "credential")):
+                return [value]
+    return []
+
+
+def credly_badge_names(item):
+    names = []
+    containers = [item]
+    data = item.get("data")
+    if isinstance(data, dict):
+        containers.append(data)
+    for container in containers:
+        names.extend(container.get(key) for key in ("name", "badge_name", "badge_template_name", "credential_name"))
+        for key in ("badge_template", "badge", "credential"):
+            nested = container.get(key)
+            if isinstance(nested, dict):
+                names.extend(nested.get(name_key) for name_key in ("name", "badge_template_name", "credential_name"))
+    return {normalize_credential_name(name) for name in names if isinstance(name, str) and name.strip()}
+
+
+def merge_credly_expirations(transcript, credly_payload):
+    badge_records = []
+    for badge in credly_badge_items(credly_payload):
+        if not isinstance(badge, dict):
+            continue
+        details = badge.get("data") if isinstance(badge.get("data"), dict) else badge
+        expiration = badge.get("expires_at_date") or details.get("expires_at_date")
+        if not isinstance(expiration, str):
+            expiration = ""
+        issued = badge.get("issued_at_date") or badge.get("issued_at") or details.get("issued_at_date") or details.get("issued_at") or ""
+        created = str(badge.get("created_at") or details.get("created_at") or "")
+        image_url = ""
+        for container in (badge, details):
+            template = container.get("badge_template") if isinstance(container, dict) else None
+            candidate_image = template.get("image_url") if isinstance(template, dict) else ""
+            if candidate_image:
+                parsed_image = urlsplit(str(candidate_image))
+                if parsed_image.scheme == "https" and parsed_image.hostname and (
+                        parsed_image.hostname == "credly.com" or parsed_image.hostname.endswith(".credly.com")):
+                    image_url = str(candidate_image)
+                    break
+        for name in credly_badge_names(badge):
+            badge_records.append((name, created, str(issued)[:10], expiration[:10], image_url))
+    matched_count = 0
+    for cert in transcript.get("certs", []):
+        if not isinstance(cert, dict):
+            continue
+        names = [normalize_credential_name(cert.get(key)) for key in ("name", "certificationName") if cert.get(key)]
+        # Credly often omits the exam code appended to the CertMetrics name.
+        # Match the Credly badge name as a substring of the CertMetrics name.
+        matches = [
+            (created, issued, expiration, image_url)
+            for badge_name, created, issued, expiration, image_url in badge_records
+            if badge_name and any(badge_name in cert_name for cert_name in names)
+        ]
+        matched_count += bool(matches)
+        latest = max(matches, key=lambda record: record[0] or record[1]) if matches else None
+        selected = latest[2] if latest else ""
+        cert["expiresAtDate"] = selected
+        cert["imageUrl"] = latest[3] if latest else ""
+    return matched_count
+
+
+def resolve_credly_profile(profile_url):
+    payload = fetch_json(profile_url, accept="application/json")
+    data = payload.get("data") if isinstance(payload, dict) else None
+    synthetic_id = data.get("synthetic_id") if isinstance(data, dict) else None
+    if not isinstance(synthetic_id, str) or not re.fullmatch(r"[A-Za-z0-9-]+", synthetic_id):
+        raise ValueError("La risposta JSON del profilo Credly non contiene un data.synthetic_id valido.")
+    return f"https://www.credly.com/users/{synthetic_id}/badges.json?api=api&page=1&page_size=48"
+
+
+def normalize_credly_url(value):
+    if not value:
+        return ""
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("Inserisci un URL Credly valido.") from exc
+    parts = [part for part in parsed.path.split("/") if part]
+    profile_alias = len(parts) == 4 and parts[0] == "users" and parts[1] and parts[2:] == ["badges", "credly"]
+    profile_path = len(parts) == 2 and parts[0] == "users" and parts[1]
+    public_path = len(parts) == 3 and parts[0] == "users" and parts[1] and parts[2] in {"badges", "badges.json"}
+    api_path = len(parts) == 5 and parts[:3] == ["api", "v1", "users"] and parts[3] and parts[4] == "badges"
+    valid_path = profile_alias or profile_path or public_path or api_path
+    if (parsed.scheme != "https" or parsed.hostname not in {"credly.com", "www.credly.com"}
+            or parsed.username or parsed.password or port or parsed.fragment or not valid_path):
+        raise ValueError("L’URL Credly deve puntare al profilo utente /badges o all’API /api/v1/users/{id}/badges.")
+    if profile_alias or profile_path:
+        if parsed.query:
+            raise ValueError("L’URL profilo Credly non deve contenere parametri.")
+        profile_slug = parts[1].rstrip(",")
+        if not profile_slug:
+            raise ValueError("Lo slug del profilo Credly non è valido.")
+        profile_url = f"https://www.credly.com/users/{profile_slug}"
+        return resolve_credly_profile(profile_url)
+    query = parse_qs(parsed.query)
+    if set(query) - {"api", "page", "page_size"}:
+        raise ValueError("L’URL Credly può contenere solo i parametri api, page e page_size.")
+    if "api" in query and query["api"] != ["api"]:
+        raise ValueError("Il parametro Credly api deve avere valore api.")
+    if public_path and parts[2] == "badges.json" and query.get("api") == ["api"] \
+            and query.get("page") == ["1"] and query.get("page_size") == ["48"]:
+        return value
+    query.setdefault("api", ["api"])
+    query.setdefault("page", ["1"])
+    query.setdefault("page_size", ["48"])
+    user_id = parts[3] if api_path else parts[1]
+    query_string = urlencode(query, doseq=True)
+    return f"https://www.credly.com/users/{user_id}/badges.json" + (f"?{query_string}" if query_string else "")
 
 
 def normalize_source_url(value):
@@ -128,6 +319,7 @@ def validate_sources(payload):
     if not isinstance(sources, list) or len(sources) > 100:
         raise ValueError("La configurazione deve contenere un array sources (massimo 100 righe).")
     cleaned = []
+    existing = {row.get("url"): row for row in read_config().get("sources", [])}
     for row in sources:
         if not isinstance(row, dict):
             raise ValueError("Ogni riga deve contenere un URL.")
@@ -135,10 +327,9 @@ def validate_sources(payload):
         if not url:
             continue
         api_url = normalize_source_url(url)
-        try:
-            cleaned.append(download_source(api_url))
-        except (HTTPError, URLError, TimeoutError, OSError, UnicodeError, json.JSONDecodeError) as exc:
-            raise ValueError(f"Download non riuscito per {api_url}: {exc}") from exc
+        credly_url = normalize_credly_url(str(row.get("credlyUrl", "")).strip())
+        previous = existing.get(api_url, {})
+        cleaned.append({"url": api_url, "credlyUrl": credly_url, "name": previous.get("name", "")})
     return cleaned
 
 
@@ -190,7 +381,10 @@ def normalize_classification(entry):
 
 
 def read_classifications():
-    data = json.loads(CLASSIFICATIONS.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(CLASSIFICATIONS.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{CLASSIFICATIONS.name} contains invalid or empty JSON: {exc}") from exc
     items = data.get("certifications", [])
     return [normalize_classification(x) for x in items]
 
@@ -235,22 +429,74 @@ def refresh_and_sync():
     sources = read_config().get("sources", [])
     TRANSCRIPTS_CACHE.mkdir(parents=True, exist_ok=True)
     files, saved = [], 0
+    updated_sources = []
     for source in sources:
-        url, name = source["url"], source["name"]
+        url, name = source["url"], source.get("name", "")
         try:
-            request = Request(url, headers={"Accept": "application/json", "User-Agent": "CertificazioniDashboard/1.0"})
-            with urlopen(request, timeout=30) as response:
-                raw = response.read()
-            data = json.loads(raw.decode("utf-8-sig"))
+            data = fetch_json(url)
+            if not isinstance(data, dict):
+                raise ValueError("CertMetrics returned an invalid JSON object.")
+            name = extract_candidate_name(data)
+            credly_url = normalize_credly_url(str(source.get("credlyUrl", "")).strip())
+            credly_error = ""
+            if credly_url:
+                try:
+                    credly_data = fetch_credly_badges(credly_url)
+                    matched_count = merge_credly_expirations(data, credly_data)
+                    if data.get("certs") and not matched_count:
+                        credly_error = "No certification names matched the Credly badges."
+                    credly_cache_path(credly_url).write_text(
+                        json.dumps(credly_data, ensure_ascii=False, indent=2), encoding="utf-8")
+                except (HTTPError, URLError, TimeoutError, OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
+                    credly_error = ("Credly ha risposto 401 Unauthorized. L’endpoint API richiede credenziali; "
+                                    "l’URL è stato convertito al feed pubblico. Verifica che il profilo e i badge siano pubblici."
+                                    if isinstance(exc, HTTPError) and exc.code == 401 else str(exc))
+                    cached_credly = credly_cache_path(credly_url)
+                    if cached_credly.exists():
+                        try:
+                            merge_credly_expirations(data, json.loads(cached_credly.read_text(encoding="utf-8")))
+                        except (OSError, UnicodeError, json.JSONDecodeError):
+                            pass
             cache_file = TRANSCRIPTS_CACHE / safe_filename(name)
             cache_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
             cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
-            files.append({"url": url, "name": name, "file": cache_file.name, "data": cached_data})
+            item = {"url": url, "credlyUrl": credly_url, "name": name, "file": cache_file.name, "data": cached_data}
+            if credly_error:
+                item["credlyError"] = credly_error
+            files.append(item)
+            updated_sources.append({"url": url, "credlyUrl": credly_url, "name": name})
             saved += 1
         except (HTTPError, URLError, TimeoutError, OSError, UnicodeError, json.JSONDecodeError, ValueError) as exc:
             files.append({"url": url, "name": name, "message": str(exc), "error": True})
+            updated_sources.append(source)
+    write_config(updated_sources)
     _, added = sync_classifications(files)
-    return {"files": files, "saved": saved, "newNames": added}
+    refreshed_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    REFRESH_STATE.write_text(json.dumps({"refreshedAt": refreshed_at}, ensure_ascii=False), encoding="utf-8")
+    return {"files": files, "saved": saved, "newNames": added, "refreshedAt": refreshed_at}
+
+
+def cached_transcripts():
+    files, saved = [], 0
+    for source in read_config().get("sources", []):
+        name = source.get("name", "")
+        path = TRANSCRIPTS_CACHE / safe_filename(name) if name else None
+        if not path or not path.exists():
+            files.append({"url": source["url"], "credlyUrl": source.get("credlyUrl", ""),
+                          "name": name or source["url"], "message": "No downloaded data yet. Use Refresh data.", "error": True})
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            files.append({"url": source["url"], "credlyUrl": source.get("credlyUrl", ""),
+                          "name": name, "file": path.name, "data": data})
+            saved += 1
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            files.append({"url": source["url"], "name": name, "message": str(exc), "error": True})
+    try:
+        refreshed_at = json.loads(REFRESH_STATE.read_text(encoding="utf-8")).get("refreshedAt", "")
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        refreshed_at = ""
+    return {"files": files, "saved": saved, "refreshedAt": refreshed_at}
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -297,13 +543,13 @@ class Handler(SimpleHTTPRequestHandler):
                 return
             try:
                 self.send_json(read_config())
-            except (OSError, json.JSONDecodeError) as exc:
+            except (OSError, ValueError) as exc:
                 self.send_json({"error": str(exc)}, 500)
             return
         if path == "/api/classifications":
             try:
                 self.send_json({"certifications": read_classifications()})
-            except (OSError, json.JSONDecodeError) as exc:
+            except (OSError, ValueError) as exc:
                 self.send_json({"error": str(exc)}, 500)
             return
         if path == "/api/partnership-requirements":
@@ -314,7 +560,7 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if path == "/api/refresh":
             try:
-                self.send_json(refresh_and_sync())
+                self.send_json(cached_transcripts())
             except (OSError, json.JSONDecodeError, KeyError) as exc:
                 self.send_json({"files": [], "error": str(exc)}, 500)
             return
@@ -335,16 +581,22 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path = urlsplit(self.path).path
-        if path not in ("/api/login", "/api/password", "/api/config", "/api/classifications"):
+        if path not in ("/api/login", "/api/password", "/api/config", "/api/classifications", "/api/refresh"):
             self.send_json({"error": "Endpoint non trovato."}, 404)
             return
         try:
-            length = int(self.headers.get("Content-Length", "0"))
-            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            if path == "/api/refresh":
+                payload = {}
+            else:
+                length = int(self.headers.get("Content-Length", "0"))
+                raw_payload = self.rfile.read(length)
+                if not raw_payload:
+                    raise ValueError("La richiesta non contiene un payload JSON.")
+                payload = json.loads(raw_payload.decode("utf-8"))
             if path == "/api/login":
                 password = str(payload.get("password", "")) if isinstance(payload, dict) else ""
                 if not verify_password(password):
-                    self.send_json({"error": "Password non corretta."}, 401)
+                    self.send_json({"error": "Incorrect password."}, 401)
                     return
                 token = secrets.token_urlsafe(32)
                 SESSIONS[token] = time.time() + SESSION_TTL
@@ -371,12 +623,16 @@ class Handler(SimpleHTTPRequestHandler):
                 PASSWORD_FILE.write_text(hash_password(new) + "\n", encoding="utf-8")
                 self.send_json({"changed": True})
                 return
+            if path == "/api/refresh":
+                self.send_json(refresh_and_sync())
+                return
             if path == "/api/config":
                 if not self.require_auth():
                     return
                 sources = validate_sources(payload)
                 write_config(sources)
-                self.send_json({"sources": sources, "saved": True})
+                refresh_result = refresh_and_sync()
+                self.send_json({"sources": read_config().get("sources", []), "refresh": refresh_result, "saved": True})
             else:
                 if not self.require_auth():
                     return
@@ -410,16 +666,12 @@ def main():
     args = parser.parse_args()
     ensure_password_file()
     read_config()
-    try:
-        result = refresh_and_sync()
-        print(f"Avvio: scaricati {result['saved']} JSON; aggiunte {len(result['newNames'])} nuove certificazioni.")
-    except (OSError, json.JSONDecodeError, KeyError) as exc:
-        print(f"Aggiornamento classificazioni all'avvio non riuscito: {exc}")
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"Webapp: http://{args.host}:{args.port}/")
     print(f"Configurazione: {CONFIG}")
     print(f"Classificazioni: {CLASSIFICATIONS}")
     print(f"Cache JSON: {CACHE}")
+    print("I JSON vengono aggiornati solo su richiesta tramite Refresh data.")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
