@@ -14,9 +14,10 @@ import json
 import re
 import secrets
 import tempfile
+import threading
 import time
 import unicodedata
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 BASE = Path(__file__).resolve().parent
@@ -35,6 +36,7 @@ ALLOWED_TYPES = {"Sales", "Technical"}
 ALLOWED_SPECS = {"Pre-Sales", "Implementation", "Support", "Architecture"}
 ALLOWED_LEVELS = {"Proven Professional", "Certified Expert"}
 DEFAULT_SOURCES = []
+REFRESH_LOCK = threading.Lock()
 
 
 def read_config():
@@ -486,7 +488,7 @@ def sync_classifications(downloaded):
     return items, added
 
 
-def refresh_and_sync():
+def _refresh_and_sync():
     sources = read_config().get("sources", [])
     TRANSCRIPTS_CACHE.mkdir(parents=True, exist_ok=True)
     files, saved = [], 0
@@ -545,6 +547,12 @@ def refresh_and_sync():
     refreshed_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     REFRESH_STATE.write_text(json.dumps({"refreshedAt": refreshed_at}, ensure_ascii=False), encoding="utf-8")
     return {"files": files, "saved": saved, "newNames": added, "refreshedAt": refreshed_at}
+
+
+def refresh_and_sync():
+    # Manual and scheduled refreshes share the same cache and configuration files.
+    with REFRESH_LOCK:
+        return _refresh_and_sync()
 
 
 def cached_transcripts():
@@ -730,6 +738,20 @@ class Handler(SimpleHTTPRequestHandler):
         except OSError as exc:
             self.send_json({"error": str(exc)}, 500)
 
+def daily_refresh_scheduler():
+    while True:
+        tomorrow = datetime.now().date() + timedelta(days=1)
+        next_midnight = time.mktime((tomorrow.year, tomorrow.month, tomorrow.day, 0, 0, 0, -1, -1, -1))
+        delay = max(1, next_midnight - time.time())
+        print(f"Refresh automatico programmato alle {datetime.fromtimestamp(next_midnight).isoformat(timespec='minutes')}", flush=True)
+        time.sleep(delay)
+        try:
+            result = refresh_and_sync()
+            print(f"Refresh automatico completato: {result['saved']} candidati aggiornati.", flush=True)
+        except Exception as exc:
+            print(f"Refresh automatico non riuscito: {exc}", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Avvia la webapp per il confronto delle certificazioni.")
     parser.add_argument("--host", default="0.0.0.0", help="Interfaccia di ascolto (default: tutte le interfacce)")
@@ -737,12 +759,15 @@ def main():
     args = parser.parse_args()
     ensure_password_file()
     read_config()
+    scheduler = threading.Thread(target=daily_refresh_scheduler, name="daily-certification-refresh", daemon=True)
+    scheduler.start()
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     print(f"Webapp: http://{args.host}:{args.port}/")
     print(f"Configurazione: {CONFIG}")
     print(f"Classificazioni: {CLASSIFICATIONS}")
     print(f"Cache JSON: {CACHE}")
-    print("I JSON vengono aggiornati solo su richiesta tramite Refresh data.")
+    print(f"Refresh automatico giornaliero a mezzanotte (fuso del container: {time.tzname[0]}).", flush=True)
+    print("Il refresh manuale resta disponibile dal pulsante Refresh data.", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
