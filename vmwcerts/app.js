@@ -59,7 +59,7 @@ function showBadgePreview(anchor,url,name){
 function hideBadgePreview(){if(badgePreview)badgePreview.hidden=true}
 
 function renderCertTable(candidates,showAll,query,classifications){
-  const holder=$("#cert-table"),candidateNames=[...new Set(candidates.map(c=>c.name))];const map=new Map();
+  const holder=$("#cert-table"),candidateNames=[...new Set(candidates.map(c=>c.name))].sort((a,b)=>a.localeCompare(b,"en",{sensitivity:"base"}));const map=new Map();
   const categories=normalizeClassifications(classifications||[]);
   for(const person of candidates)for(const cert of person.certs){const category=categories.get(cert.id)||categories.get(`name:${cert.name.toLocaleLowerCase("en")}`);if(!map.has(cert.id||cert.name))map.set(cert.id||cert.name,{name:cert.name,imageUrl:category?.imageUrl||"",dates:new Map()});const entry=map.get(cert.id||cert.name);if(!entry.imageUrl&&category?.imageUrl)entry.imageUrl=category.imageUrl;entry.dates.set(person.name,cert)}
   let records=[...map.values()].filter(cert=>cert.name.toLocaleLowerCase("en").includes(query.toLocaleLowerCase("en"))&&[...cert.dates.values()].some(award=>showAward(award,showAll))).sort((a,b)=>a.name.localeCompare(b.name,"en"));
